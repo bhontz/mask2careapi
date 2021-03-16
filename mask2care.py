@@ -11,6 +11,7 @@ class Mask2Care():
     def __init__(self):
         self.lstReturnedItems = list()
         self.imgBuffer = io.BytesIO()
+        self.server_root = os.path.dirname(os.path.abspath(__file__))
 
         project_folder = os.path.expanduser('/users/brad/code/mask2careapi')  # ON WEB SERVER: ~/mask2careapi
         load_dotenv(os.path.join(project_folder, '.env'))
@@ -27,6 +28,7 @@ class Mask2Care():
         del self.lstReturnedItems
         del self.imgBuffer
         del self.cloudinary_config
+        del self.server_root
         return
 
     def __urlToImage(self, url, readFlag=cv2.IMREAD_COLOR):
@@ -36,6 +38,14 @@ class Mask2Care():
         image = cv2.imdecode(image, readFlag)
 
         return image
+
+    def simpleTest(self):
+        img = Image.open(os.path.join(self.server_root, "static", "maskTemplate01.png"))
+        self.imgBuffer.seek(0)
+        img.save(self.imgBuffer, format="PNG")
+        self.imgBuffer.seek(0)
+        response = cloudinary.uploader.upload(self.imgBuffer)
+        return response["url"]
 
     def getOrderOptions(self, strSelfieImageURL):
         """
@@ -53,7 +63,7 @@ class Mask2Care():
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
             # now set up the dlib model
-            modelPathFn = "static/shape_predictor_68_face_landmarks.dat"
+            modelPathFn = os.path.join(self.server_root, "static", "shape_predictor_68_face_landmarks.dat")
             frontalFaceDetector = dlib.get_frontal_face_detector()
             faceLandmarkDetector = dlib.shape_predictor(modelPathFn)
 
@@ -80,7 +90,7 @@ class Mask2Care():
                     yOVL = top_nose.y
 
                     for i in range(1, 7):  # we have six design options with our assets folder ...
-                        imgOVL = Image.open("static/maskTemplate0{}.png".format(i))
+                        imgOVL = Image.open(os.path.join(self.server_root, "static", "maskTemplate0{}.png".format(i)))
                         imgOVL = imgOVL.resize((wOVL, hOVL))  # resize based upon facial landmarks
                         imgOVL = imgOVL.convert("RGBA")  # enable transparency within overlayed image
                         imgMain = Image.fromarray(imgRGB)  # converting a CV2 image to PIL format
